@@ -1,10 +1,12 @@
 (ns jarohen.with-open
-  (:import [java.io Closeable]))
+  (:import [java.io Closeable]
+           [java.lang AutoCloseable]))
 
 (defn _with-open [resource f]
   (cond
-    (instance? Closeable resource) (with-open [_ resource]
-                                     (f resource))
+    (or (instance? Closeable resource)
+        (instance? AutoCloseable resource)) (with-open [_ resource]
+                                              (f resource))
 
     (fn? resource) (resource f)
     :else (throw (ex-info "Invalid resource passed to with-open+" {:resource resource}))))
