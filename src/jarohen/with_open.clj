@@ -1,12 +1,27 @@
 (ns jarohen.with-open
-  (:import [java.io Closeable]
-           [java.lang AutoCloseable]))
+  (:import
+   [java.io Closeable]
+   [java.lang AutoCloseable]))
+
+(set! *warn-on-reflection* true)
+
+(defprotocol Resource
+  "Represents a resource with state that should be closed when no longer needed."
+  (-close [resource]))
+
+(extend-protocol Resource
+  Closeable
+  (-close [this] (.close this))
+
+  AutoCloseable
+  (-close [this] (.close this)))
 
 (defn _with-open [resource f]
   (cond
-    (or (instance? Closeable resource)
-        (instance? AutoCloseable resource)) (with-open [_ resource]
-                                              (f resource))
+    (satisfies? Resource resource) (try
+                                     (f resource)
+                                     (finally
+                                       (-close resource)))
 
     (fn? resource) (resource f)
     :else (throw (ex-info "Invalid resource passed to with-open+" {:resource resource}))))
