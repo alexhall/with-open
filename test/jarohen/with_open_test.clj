@@ -1,8 +1,7 @@
 (ns jarohen.with-open-test
   (:require
    [clojure.test :refer [deftest is]]
-   [jarohen.with-open :as with-open]
-   [matcher-combinators.test]))
+   [jarohen.with-open :as with-open]))
 
 (deftest test-try-finally-no-exception
   (let [*result (atom nil)]
