@@ -50,16 +50,6 @@
   AutoCloseable
   (-close [this] (.close this)))
 
-(defn _with-open [resource f]
-  (cond
-    (satisfies? Resource resource) (try-finally
-                                    (f resource)
-                                    :finally
-                                    (-close resource))
-
-    (fn? resource) (resource f)
-    :else (throw (ex-info "Invalid resource passed to with-open+" {:resource resource}))))
-
 (defmacro with-open+
   "Like `clojure.core/with-open` this evaluates the body in a try expression with
   the provided bindings that are cleaned up in a finally clause, but provides some
@@ -70,9 +60,18 @@
   - Exceptions thrown in the finally clause will not mask previous exceptions thrown
     from the body (or inner finally clauses)."
   [bindings & body]
-  (if-let [[binding expr & more-bindings] (seq bindings)]
-    `(_with-open ~expr (fn [~binding]
-                         (with-open+ [~@more-bindings]
-                           ~@body)))
-
-    `(do ~@body)))
+  (if (= (count bindings) 0) `(do ~@body)
+      (let [[binding expr] bindings]
+        ;; It needs to allow for destructuring so we make a placeholder gensym
+        `(let [value# ~expr]
+           (cond
+             (satisfies? Resource value#)
+             ,(try-finally
+                (let [~binding value#]
+                  (with-open+ ~(subvec bindings 2) ~@body))
+                :finally
+                (-close value#))
+             (fn? value#)
+             ,(value# (fn [~binding]
+                        (with-open+ ~(subvec bindings 2) ~@body)))
+             :else (throw (ex-info "Invalid resource passed to with-open+" {:resource value#})))))))
