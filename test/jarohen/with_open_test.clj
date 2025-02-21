@@ -3,13 +3,13 @@
    [clojure.test :refer [deftest is]]
    [jarohen.with-open :as with-open :refer [with-open+]]))
 
-(deftest test-suppress-throwable
+(deftest test-throw-suppressing
   (let [*result (atom nil)]
     (is (= 3
            (try
              (+ 1 2)
              (catch Throwable ex
-               (with-open/suppress-throwable ex
+               (with-open/throw-suppressing ex
                  (reset! *result :done))))))
     (is (nil? @*result)))
   
@@ -18,7 +18,7 @@
                  (try
                    (/ 1 0)
                    (catch Throwable ex
-                     (with-open/suppress-throwable ex
+                     (with-open/throw-suppressing ex
                        (reset! *result :done))))))
     (is (= :done @*result)))
 
@@ -26,7 +26,7 @@
                              (try
                                (/ 1 0)
                                (catch Throwable ex
-                                 (with-open/suppress-throwable ex
+                                 (with-open/throw-suppressing ex
                                    (.toString nil))))))]
     (is (= NullPointerException (class (first (.getSuppressed ex)))))))
 

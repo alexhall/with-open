@@ -5,7 +5,7 @@
 
 (set! *warn-on-reflection* true)
 
-(defmacro suppress-throwable
+(defmacro throw-suppressing
   "Throw ex. Run the body and if it throws, then add the exception as a suppressed exception to ex."
   [e body]
   `(try
