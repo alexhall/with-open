@@ -3,13 +3,40 @@
    [clojure.test :refer [deftest is]]
    [jarohen.with-open :as with-open :refer [with-open+]]))
 
+(deftest test-suppress-throwable
+  (let [*result (atom nil)]
+    (is (= 3
+           (try
+             (+ 1 2)
+             (catch Throwable ex
+               (with-open/suppress-throwable ex
+                 (reset! *result :done))))))
+    (is (nil? @*result)))
+  
+  (let [*result (atom nil)]
+    (is (thrown? ArithmeticException
+                 (try
+                   (/ 1 0)
+                   (catch Throwable ex
+                     (with-open/suppress-throwable ex
+                       (reset! *result :done))))))
+    (is (= :done @*result)))
+
+  (when-let [ex (is (thrown? ArithmeticException
+                             (try
+                               (/ 1 0)
+                               (catch Throwable ex
+                                 (with-open/suppress-throwable ex
+                                   (.toString nil))))))]
+    (is (= NullPointerException (class (first (.getSuppressed ex)))))))
+
 (deftest test-try-finally-no-exception
   (let [*result (atom nil)]
     (is (= 3
            (with-open/try-finally
-            (+ 1 2)
-            :finally
-            (reset! *result :done))))
+             (+ 1 2)
+             :finally
+             (reset! *result :done))))
     (is (= :done
            @*result))))
 
@@ -17,9 +44,9 @@
   (let [*result (atom nil)]
     (is (thrown? ArithmeticException
                  (with-open/try-finally
-                  (/ 1 0)
-                  :finally
-                  (reset! *result :done))))
+                   (/ 1 0)
+                   :finally
+                   (reset! *result :done))))
     (is (= :done
            @*result))))
 
@@ -27,30 +54,30 @@
   (let [*result (atom nil)]
     (is (thrown? NullPointerException
                  (with-open/try-finally
-                  (+ 1 2)
-                  :finally
-                  (do
-                    (.toString nil)
-                    (reset! *result :done)))))
+                   (+ 1 2)
+                   :finally
+                   (do
+                     (.toString nil)
+                     (reset! *result :done)))))
     (is (nil? @*result))))
 
 (deftest test-try-finally-body-and-finally-exception
   (let [*result (atom nil)]
     (is (thrown? ArithmeticException
                  (with-open/try-finally
-                  (/ 1 0)
-                  :finally
-                  (do
-                    (.toString nil)
-                    (reset! *result :done)))))
+                   (/ 1 0)
+                   :finally
+                   (do
+                     (.toString nil)
+                     (reset! *result :done)))))
     (is (nil? @*result))
 
     ;; confirm that the exception from the finally block is included in the thrown exception
     (when-let [ex (is (thrown? Exception
                                (with-open/try-finally
-                                (/ 1 0)
-                                :finally
-                                (.toString nil))))]
+                                 (/ 1 0)
+                                 :finally
+                                 (.toString nil))))]
       (is (= NullPointerException (class (first (.getSuppressed ex))))))))
 
 

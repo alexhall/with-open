@@ -5,6 +5,16 @@
 
 (set! *warn-on-reflection* true)
 
+(defmacro suppress-throwable
+  "Throw ex. Run the body and if it throws, then add the exception as a suppressed exception to ex."
+  [e body]
+  `(try
+     ~body
+     (catch Throwable e2#
+       (.addSuppressed ^Throwable ~e e2#))
+     (finally
+       (throw ~e))))
+
 (defmacro try-finally
   "Use try/finally such that an exception in the finally clause does not
   mask a prior exception in the try block. The first arg is a form to be
